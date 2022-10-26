@@ -1,0 +1,32 @@
+version: '3.4'
+
+services:
+  btsappdemo:
+    image: btsdemo
+    restart: always
+
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    ports:
+      - 8000:8000
+
+  webproxy:
+    image: nginx
+    restart: always
+    volumes: 
+      - ./nginx:/etc/nginx/conf.d
+    ports:
+      - 80:80
+
+  postgresql:
+    image: postgres:12.1-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=1.sss123.1
+      - POSTGRES_DB=btsdemodb
+    ports:
+      - '5432:5432'
+    volumes: 
+      - ./data/db:/var/lib/postgresql/data
