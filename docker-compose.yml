@@ -1,4 +1,4 @@
-version: '3.4'
+version: '3.7'
 
 services:
   btsappdemo:
@@ -10,14 +10,19 @@ services:
       dockerfile: ./Dockerfile
     ports:
       - 8000:8000
+    networks:
+      - net-for-elk
 
   webproxy:
     image: nginx
     restart: always
     volumes: 
       - ./nginx:/etc/nginx/conf.d
+      - ./containerdir/nginx/logs:/var/log/nginx
     ports:
       - 80:80
+    networks:
+      - net-for-elk
 
   postgresql:
     image: postgres:12.1-alpine
@@ -30,3 +35,48 @@ services:
       - '5432:5432'
     volumes: 
       - ./data/db:/var/lib/postgresql/data
+    networks:
+      - net-for-elk
+
+  fluent-bitsa:
+    container_name: fluent-bit
+    image: fluent/fluent-bit
+    volumes:
+      - ./containerdir/elk-fluent/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+      - ./containerdir/elk-fluent/parsers.conf:/fluent-bit/etc/parsers.conf
+      - ./containerdir/nginx/logs:/var/log/nginx
+    depends_on:
+      - elasticsearch
+    networks:
+      - net-for-elk
+
+  elasticsearch:
+    container_name: es-container
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.11.0
+    volumes:
+      - ./containerdir/elastic:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    environment:
+      - discovery.type=single-node
+    networks:
+      - net-for-elk
+
+  kibana:
+    container_name: kb-container
+    image: docker.elastic.co/kibana/kibana:7.11.0
+    environment:
+      - ELASTICSEARCH_HOSTS=http://es-container:9200
+    networks:
+      - net-for-elk
+    depends_on:
+      - elasticsearch
+    ports:
+      - 5601:5601
+
+
+
+
+networks:
+  net-for-elk:
+    driver: bridge
